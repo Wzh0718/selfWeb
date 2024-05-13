@@ -10,6 +10,9 @@ import (
 //go:generate go env -w GOPROXY=https://goproxy.cn,direct
 //go:generate go mod tidy
 //go:generate go mod download
+//go:generate go env -w GOARCH=amd64
+// 打包修改 windows 或者是 linux
+//go:generate go env -w GOOS=windows
 
 func main() {
 	//加载配置文件

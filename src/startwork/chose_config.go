@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
+	"runtime"
 	"selfWeb/src/configuration"
 	"selfWeb/src/configuration/structs"
 	"selfWeb/src/tools/TimeUtils"
@@ -23,8 +24,12 @@ func ChoseConfig(path ...string) *viper.Viper {
 		flag.Parse()
 		if config == "" {
 			// 加载 yaml 路径
-			configPath, _ := filepath.Abs(".")
-			configPath = configPath + "\\resource\\yaml\\"
+			configPath, _ := filepath.Abs("../..")
+			if runtime.GOOS == "windows" {
+				configPath = configPath + "\\resource\\yaml\\"
+			} else {
+				configPath = configPath + "/resource/yaml/"
+			}
 			if configEnv := os.Getenv(structs.ConfigEnv); configEnv == "" {
 				//默认只走一个文件，可以后期修改 路径为resource --> yaml --> xxx.yaml
 				switch gin.Mode() {
