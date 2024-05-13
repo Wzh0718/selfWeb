@@ -41,8 +41,11 @@ func Routers() *gin.Engine {
 	Router.Use(middleware.CorsByRules())
 	configuration.Logger.Info("使用 middleware.CorsByRules()配置文件")
 
-	//统一规范路由组前缀
+	//统一规范路由组前缀: 主路由层 -->
 	RouterGroup := Router.Group(configuration.FileConfig.System.RouterPrefix)
+	ChatRouterGroup := RouterGroup.Group("/chat")
+	GetChatGpt(ChatRouterGroup)
+	GetChatGptDepositScreen(ChatRouterGroup)
 	{
 		// 监测存活状态
 		RouterGroup.GET("/heath", func(c *gin.Context) {

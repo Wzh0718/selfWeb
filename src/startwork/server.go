@@ -19,9 +19,8 @@ func RunServer() {
 
 	s := initServer(address, Router)
 
-	configuration.Logger.Info("server run success on ", zap.String("address", address))
+	configuration.Logger.Info("Web server run success on ", zap.String("address", address))
 
-	fmt.Printf(`Libre Web is Starting`, address)
 	configuration.Logger.Error(s.ListenAndServe().Error())
 
 }
