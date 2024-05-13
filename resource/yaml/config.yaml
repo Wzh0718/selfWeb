@@ -1,0 +1,24 @@
+# zap logger configuration
+zap:
+  level: info
+  format: console
+  prefix: "[Libre-Web-Logger]"
+  director: log
+  show-line: true
+  encode-level: LowercaseColorLevelEncoder
+  stacktrace-key: stacktrace
+  log-in-console: true
+
+# jwt configuration
+jwt:
+  signing-key: libre
+  expires-time: 7d
+  buffer-time: 1d
+  issuer: libre
+
+# autocode configuration
+autocode:
+  transfer-restart: true
+  # root 自动适配项目根目录
+  root: ""
+
