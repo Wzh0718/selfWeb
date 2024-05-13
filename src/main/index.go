@@ -17,5 +17,5 @@ func main() {
 	// 加载日志
 	configuration.Logger = startwork.Logger()
 	zap.ReplaceGlobals(configuration.Logger)
-
+	startwork.RunServer()
 }

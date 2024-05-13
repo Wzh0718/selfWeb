@@ -22,17 +22,24 @@ func ChoseConfig(path ...string) *viper.Viper {
 		flag.StringVar(&config, "c", "", "chose config file")
 		flag.Parse()
 		if config == "" {
+			// 加载 yaml 路径
+			configPath, _ := filepath.Abs(".")
+			configPath = configPath + "\\resource\\yaml\\"
 			if configEnv := os.Getenv(structs.ConfigEnv); configEnv == "" {
 				//默认只走一个文件，可以后期修改 路径为resource --> yaml --> xxx.yaml
 				switch gin.Mode() {
 				case gin.DebugMode:
+					config = configPath + structs.ConfigFile
+					fmt.Printf("正在使用gin模式的%s环境名称, config路径为%s\n", gin.Mode(), config)
 				case gin.TestMode:
+					config = configPath + structs.ConfigFile
+					fmt.Printf("正在使用gin模式的%s环境名称, config路径为%s\n", gin.Mode(), config)
 				case gin.ReleaseMode:
-					config = structs.ConfigFile
+					config = configPath + structs.ConfigFile
 					fmt.Printf("正在使用gin模式的%s环境名称, config路径为%s\n", gin.Mode(), config)
 				}
 			} else {
-				config = configEnv
+				config = configPath + configEnv
 				fmt.Printf("正在使用gin模式的%s环境名称, config路径为%s\n", gin.Mode(), config)
 			}
 		} else {
@@ -64,7 +71,7 @@ func ChoseConfig(path ...string) *viper.Viper {
 		panic(err)
 	}
 	// 更新当前root路径
-	configuration.FileConfig.AutoCode.Root, _ = filepath.Abs("../..")
+	configuration.FileConfig.AutoCode.Root, _ = filepath.Abs(".")
 
 	// 设置本地缓存时间
 	InitCache()
