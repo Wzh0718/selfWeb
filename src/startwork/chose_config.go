@@ -24,7 +24,7 @@ func ChoseConfig(path ...string) *viper.Viper {
 		flag.Parse()
 		if config == "" {
 			// 加载 yaml 路径
-			configPath, _ := filepath.Abs("../..")
+			configPath, _ := filepath.Abs(".")
 			if runtime.GOOS == "windows" {
 				configPath = configPath + "\\resource\\yaml\\"
 			} else {

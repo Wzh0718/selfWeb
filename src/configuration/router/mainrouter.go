@@ -43,6 +43,10 @@ func Routers() *gin.Engine {
 
 	//统一规范路由组前缀: 主路由层 -->
 	RouterGroup := Router.Group(configuration.FileConfig.System.RouterPrefix)
+	SmtGroup := RouterGroup.Group("/smt")
+	PostRunSpider(SmtGroup)
+	GetRunSpiderVersion(SmtGroup)
+
 	ChatRouterGroup := RouterGroup.Group("/chat")
 	GetChatGpt(ChatRouterGroup)
 	GetChatGptDepositScreen(ChatRouterGroup)

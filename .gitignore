@@ -1,0 +1,6 @@
+/src/main/main
+/.idea/
+/log/
+*.exe
+*.log
+/spider/
