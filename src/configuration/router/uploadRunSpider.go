@@ -16,3 +16,9 @@ func GetRunSpiderVersion(response *gin.RouterGroup) {
 		smt.GetSpiderVersion(context)
 	})
 }
+
+func DownloadSpider(response *gin.RouterGroup) {
+	response.GET("/download/runSpider", func(context *gin.Context) {
+		smt.DownLoadSpiderFile(context)
+	})
+}

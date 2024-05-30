@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"selfWeb/src/configuration"
 	"selfWeb/src/configuration/structs"
 	"sort"
@@ -125,16 +126,10 @@ func (f byFolderName) Less(i, j int) bool {
 
 // GetMaxFolderName 获取最大的文件夹名
 func GetMaxFolderName(path string) (string, error) {
-	files, err := os.ReadDir(path)
+	folders, err := GetAllFolderName(path)
 	if err != nil {
+		configuration.Logger.Error("Get All Folder Name Error " + err.Error())
 		return "", err
-	}
-
-	var folders []string
-	for _, file := range files {
-		if file.IsDir() {
-			folders = append(folders, file.Name())
-		}
 	}
 
 	sort.Sort(sort.Reverse(byFolderName(folders)))
@@ -143,4 +138,46 @@ func GetMaxFolderName(path string) (string, error) {
 		return folders[0], nil
 	}
 	return "", fmt.Errorf("no folders found")
+}
+
+// GetAllFolderName 获取指定路径下面的所有文件夹名称
+func GetAllFolderName(path string) ([]string, error) {
+	var folders []string
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return folders, err
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			folders = append(folders, file.Name())
+		}
+	}
+	return folders, nil
+}
+
+// RetainLatestFolders 保留最新的 n 个版本的文件夹，其余的删除
+func RetainLatestFolders(path string, n int) error {
+	folders, err := GetAllFolderName(path)
+	if err != nil {
+		configuration.Logger.Error("Get All Folder Name Error " + err.Error())
+		return err
+	}
+
+	// 按照文件夹名排序
+	sort.Sort(sort.Reverse(byFolderName(folders)))
+
+	// 保留最新的 n 个版本的文件夹
+	if len(folders) > n {
+		foldersToDelete := folders[n:]
+		for _, folder := range foldersToDelete {
+			folderPath := filepath.Join(path, folder)
+			err := os.RemoveAll(folderPath)
+			if err != nil {
+				return fmt.Errorf("failed to delete folder %s : %v ", folderPath, err)
+			}
+			fmt.Printf("Deleted folder: %s ", folderPath)
+		}
+	}
+	return nil
 }

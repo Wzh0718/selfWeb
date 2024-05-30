@@ -46,6 +46,7 @@ func Routers() *gin.Engine {
 	SmtGroup := RouterGroup.Group("/smt")
 	PostRunSpider(SmtGroup)
 	GetRunSpiderVersion(SmtGroup)
+	DownloadSpider(SmtGroup)
 
 	ChatRouterGroup := RouterGroup.Group("/chat")
 	GetChatGpt(ChatRouterGroup)
