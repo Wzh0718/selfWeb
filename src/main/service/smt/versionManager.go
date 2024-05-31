@@ -2,7 +2,6 @@ package smt
 
 import (
 	"archive/zip"
-	"bytes"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"selfWeb/src/configuration"
+	"selfWeb/src/tools/Cache"
 	"selfWeb/src/tools/FileUtils"
 	"selfWeb/src/tools/HttpsUtil/response"
 	utils "selfWeb/src/tools/Unzip"
@@ -30,17 +30,16 @@ func DownloadSpiderFile(context *gin.Context) *gin.Context {
 	spiderFileDir := ""
 	// 获取参数
 	file, err := context.FormFile("data")
-
-	// 解析版本号
-	spiderVersion := context.PostForm("version")
-	spiderVersion = strings.ReplaceAll(spiderVersion, ".", "_")
-
 	if err != nil {
 		errMessage := fmt.Sprintf("get form err: %s", err.Error())
 		body := response.ReturnContextNoBody(context, http.StatusBadRequest, errMessage)
 		configuration.Logger.Error(errMessage)
 		return body
 	}
+
+	// 解析版本号
+	spiderVersion := context.PostForm("version")
+	spiderVersion = strings.ReplaceAll(spiderVersion, ".", "_")
 
 	if runtime.GOOS == "windows" {
 		configPath, _ := filepath.Abs(".")
@@ -50,10 +49,10 @@ func DownloadSpiderFile(context *gin.Context) *gin.Context {
 		versionConfigurationDir = spiderVersionDir + "\\config.json"
 		fmt.Println(runSpiderVersion)
 	} else {
-		runSpiderVersion = "/home/dav/runSpiderVersionHome/" + file.Filename
-		spiderVersionDir = "/home/dav/runSpiderVersionHome/" + spiderVersion
-		versionConfigurationDir = spiderVersionDir + "/config.json"
 		spiderFileDir = "/home/dav/runSpiderVersionHome/spider/"
+		runSpiderVersion = spiderFileDir + file.Filename
+		spiderVersionDir = spiderFileDir + spiderVersion
+		versionConfigurationDir = spiderVersionDir + "/config.json"
 	}
 
 	versionConfiguration, err := FileUtils.ReadVersionFile(versionConfigurationDir)
@@ -132,8 +131,8 @@ func GetSpiderVersion(context *gin.Context) *gin.Context {
 		configuration.Logger.Error(errMessage)
 		return body
 	}
-
-	versionConfiguration, err := FileUtils.ReadVersionFile(spiderFileDir + maxFolderName + "\\config.json")
+	configDir := filepath.Join(spiderFileDir, maxFolderName, "config.json")
+	versionConfiguration, err := FileUtils.ReadVersionFile(configDir)
 	if err != nil {
 		errMessage := fmt.Sprintf("read version file err: %s", err.Error())
 		body := response.ReturnContextNoBody(context, http.StatusBadRequest, errMessage)
@@ -152,8 +151,7 @@ func DownLoadSpiderFile(context *gin.Context) *gin.Context {
 	} else {
 		mainDir = "/home/dav/runSpiderVersionHome/"
 	}
-	// spiderFile 文件所在上级文件夹
-	spiderFileDir := filepath.Join(mainDir, "\\spider\\")
+	spiderFileDir := filepath.Join(mainDir, "spider")
 	maxFolderName, err := FileUtils.GetMaxFolderName(spiderFileDir)
 	if err != nil {
 		errMessage := fmt.Sprintf("get max file name err: %s", err.Error())
@@ -162,46 +160,67 @@ func DownLoadSpiderFile(context *gin.Context) *gin.Context {
 		return body
 	}
 	filesDir := filepath.Join(spiderFileDir, maxFolderName)
-	// 创建一个buffer来存放zip文件的内容
-	buf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(buf)
-	err = filepath.Walk(filesDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			fileContent, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			f, err := zipWriter.Create(info.Name())
-			if err != nil {
-				return err
-			}
-			_, err = f.Write(fileContent)
-			if err != nil {
-				return err
-			}
-		}
+
+	files, err := GetCachedOrNewFiles(filesDir)
+	if err != nil {
 		return nil
-	})
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create zip file"})
-		return context
 	}
-	// 关闭zip文件
-	err = zipWriter.Close()
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close zip writer"})
-		return context
+	return sendZipFile(context, files)
+}
+
+// GetCachedOrNewFiles 判断cache里面是否有指定数据，如果没有则添加
+func GetCachedOrNewFiles(filesDir string) (map[string][]byte, error) {
+	cacheKey := filesDir
+
+	filesData, ok := Cache.GetFromCache(cacheKey)
+	if ok {
+		return filesData, nil
 	}
 
-	// 设置响应头
-	context.Header("Content-Type", "application/octet-stream")
+	filesData, cacheErr := Cache.CacheFilesInMemory(filesDir)
+	if cacheErr != nil {
+		return nil, fmt.Errorf("failed to cache files in memory: %v", cacheErr)
+	}
+
+	Cache.AddToCache(cacheKey, filesData)
+
+	return filesData, nil
+}
+
+func sendZipFile(context *gin.Context, filesData map[string][]byte) *gin.Context {
+	context.Header("Content-Type", "application/zip")
 	context.Header("Content-Disposition", "attachment; filename=files.zip")
-	context.Header("Content-Length", fmt.Sprintf("%d", buf.Len()))
 
-	// 写入响应
-	context.Data(http.StatusOK, "application/octet-stream", buf.Bytes())
+	zipWriter := zip.NewWriter(context.Writer)
+	defer func(zipWriter *zip.Writer) {
+		err := zipWriter.Close()
+		if err != nil {
+			return
+		}
+	}(zipWriter)
+
+	for fileName, fileContent := range filesData {
+		f, err := zipWriter.Create(fileName)
+		// 防止重复写入头信息和状态码
+		if err != nil {
+			if !context.Writer.Written() {
+				message := fmt.Sprintf("Failed to create zip entry for file %s: %v", fileName, err)
+				response.ReturnContextNoBody(context, http.StatusInternalServerError, message)
+				configuration.Logger.Error(message)
+			}
+
+			return context
+		}
+		_, err = f.Write(fileContent)
+		if err != nil {
+			// 防止重复写入头信息和状态码
+			if !context.Writer.Written() {
+				message := fmt.Sprintf("Failed to write file %s to zip: %v", fileName, err)
+				response.ReturnContextNoBody(context, http.StatusInternalServerError, message)
+				configuration.Logger.Error(message)
+			}
+			return context
+		}
+	}
 	return context
 }

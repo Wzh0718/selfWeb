@@ -12,7 +12,7 @@ import (
 //go:generate go mod download
 //go:generate go env -w GOARCH=amd64
 // 打包修改 windows 或者是 linux
-//go:generate go env -w GOOS=windows
+//go:generate go env -w GOOS=linux
 
 func main() {
 	//加载配置文件
