@@ -1,6 +1,7 @@
 package Cache
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"selfWeb/src/configuration"
@@ -50,6 +51,8 @@ func ClearExpiredCache() {
 		return true
 	})
 	for _, key := range keysToDelete {
+		message := fmt.Sprintf("cache files delete %s ...", key)
+		configuration.Logger.Info(message)
 		cache.Delete(key)
 	}
 }
