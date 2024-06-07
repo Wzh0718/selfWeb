@@ -8,6 +8,8 @@ zap:
   encode-level: LowercaseColorLevelEncoder
   stacktrace-key: stacktrace
   log-in-console: true
+  compress: true
+  max-age: 7
 
 # jwt configuration
 jwt:
@@ -43,7 +45,7 @@ cors:
 # system configuration
 system:
   env: local # 修改为public可以关闭路由日志输出
-  addr: 80
+  addr: 8080
   db-type: mysql
   oss-type: local # 控制oss选择走本地还是 七牛等其他仓 自行增加其他oss仓可以在 server/utils/upload/upload.go 中 NewOss函数配置
   use-redis: false # 使用redis

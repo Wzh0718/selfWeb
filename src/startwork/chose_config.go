@@ -28,7 +28,7 @@ func ChoseConfig(path ...string) *viper.Viper {
 			if runtime.GOOS == "windows" {
 				configPath = configPath + "\\resource\\yaml\\"
 			} else {
-				configPath = configPath + "/resource/yaml/"
+				configPath = "/root/selfWeb/resource/yaml/"
 			}
 			if configEnv := os.Getenv(structs.ConfigEnv); configEnv == "" {
 				//默认只走一个文件，可以后期修改 路径为resource --> yaml --> xxx.yaml
